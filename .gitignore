@@ -1,3 +1,7 @@
 node_modules/
 .DS_Store
 .claude/settings.local.json
+
+# Private seed artifacts — real career data, must never be committed to this public repo
+experience-bank.md
+linkedin-rewrite.md
