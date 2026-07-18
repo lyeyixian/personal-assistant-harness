@@ -25,6 +25,8 @@ vault/
 ├── stories/              interview story bank — one behavioral narrative per note
 │   ├── prod-migration-rollback.md
 │   └── ...
+├── jobs/                 captured job postings + fit analyses — schema in the job-fit spec
+│   └── anthropic-ai-engineer.md
 └── journal/              capture inbox
     └── 2026-07-17.md
 ```
@@ -149,7 +151,7 @@ Pending = unmarked bullets above `## Folded`. This keeps fold idempotent despite
 
 ## Retrieval contract
 
-v1 retrieval is **full-context**: the corpus (~10k tokens seeded, slow growth) fits comfortably in one agent context, so fit analysis and resume generation read the curated vault whole (journal excluded — curated notes are the single source of truth after folding). The schema additionally supports **grep-style selective retrieval** (consistent frontmatter: `type`, `skills`, dates, `competencies`) and keeps **atomization mechanical** (per-achievement headings + labeled fields) if the retrieval-strategy decision ([#6](https://github.com/lyeyixian/personal-assistant-harness/issues/6)) ever demands finer granularity.
+v1 retrieval is **full-context**: the corpus (~10k tokens seeded, slow growth) fits comfortably in one agent context, so fit analysis and resume generation read the curated vault whole (journal excluded — curated notes are the single source of truth after folding; `jobs/` excluded — postings are inputs under analysis, not experience). The schema additionally supports **grep-style selective retrieval** (consistent frontmatter: `type`, `skills`, dates, `competencies`) and keeps **atomization mechanical** (per-achievement headings + labeled fields) if the retrieval-strategy decision ([#6](https://github.com/lyeyixian/personal-assistant-harness/issues/6)) ever demands finer granularity.
 
 ## Seeding map (input to #5)
 
