@@ -46,7 +46,7 @@ One **pydantic-settings** `Settings` class in the core facade; modules contribut
 - **Core provides the agent factory, not the agents**: model, retries, and usage limits come from `Settings`, so provider choice stays pure runtime config (per ADR-0001).
 - **Typed outputs everywhere** (`output_type=FitReport`, `ResumeContent`, …). For resumes this mechanically enforces "LLM writes content, deterministic pipeline renders layout" — and structured output is what makes Typst the strong renderer choice (#7).
 - **Deps as a dataclass** (`store`, `settings`, `http`) injected via `RunContext`; the store is reached only through the core facade. Evals swap in a fixture store + `TestModel`.
-- **v1 stays barely agentic, deliberately**: job postings are fetched/parsed by a deterministic pre-step and passed as input, not fetched by a tool; store reads are full-context (retrieval strategy is explicitly deferred to real corpus size, #6). Tools enter only where the model must genuinely decide — e.g. per-claim evidence lookup, if full-context proves insufficient.
+- **v1 stays barely agentic, deliberately**: job postings are fetched/parsed by a deterministic pre-step and passed as input, not fetched by a tool; store reads are full-context (decided at real corpus size in [ADR-0004](0004-full-context-retrieval.md)). Tools enter only where the model must genuinely decide — e.g. per-claim evidence lookup, if full-context proves insufficient.
 
 ### Project layout & tooling
 
