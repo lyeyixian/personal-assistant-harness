@@ -18,6 +18,21 @@ import httpx
 from loop import CallModel, Json
 
 API_URL = "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
+MODELS_URL = "https://generativelanguage.googleapis.com/v1beta/models"
+
+
+def available_models(client: httpx.Client, api_key: str) -> list[str]:
+    """List model ids this API key can call generateContent on."""
+    response = client.get(
+        MODELS_URL, params={"pageSize": 1000}, headers={"x-goog-api-key": api_key}
+    )
+    response.raise_for_status()
+    models: list[Json] = response.json().get("models", [])
+    return [
+        m["name"].removeprefix("models/")
+        for m in models
+        if "generateContent" in m.get("supportedGenerationMethods", [])
+    ]
 
 
 def to_gemini_request(
@@ -108,6 +123,13 @@ def gemini_transport(api_key: str, model: str) -> CallModel:
             headers={"x-goog-api-key": api_key, "content-type": "application/json"},
             json=to_gemini_request(messages, tool_specs, id_to_name),
         )
+        if response.status_code == 404:
+            names = "\n  ".join(available_models(client, api_key))
+            raise SystemExit(
+                f"Model '{model}' not found for this API key.\n"
+                f"Models your key can use:\n  {names}\n"
+                f"Re-run with: SPIKE_MODEL=<model-id> uv run main.py"
+            )
         response.raise_for_status()
         raw: dict[str, Any] = response.json()
         translated = from_gemini_response(raw, id_to_name)
