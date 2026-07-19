@@ -48,6 +48,27 @@ Mapping each piece of hand-rolled code to what the SDK does instead:
 
 The genuinely load-bearing insight for the harness build: **the SDK's value is not the loop — 70 lines replaces it — it's the validation boundary.** Schema generation, argument validation, and typed outputs are where hand-rolled code would accumulate real defects, and they're exactly the features ADR-0002's "LLM writes content behind typed outputs" architecture depends on.
 
+## What the live run taught (that the fake transport couldn't)
+
+The loop passed its tests first try and never changed again. Every failure in
+getting the *live* demo running was provider wire-format trivia — exactly the
+layer an SDK owns:
+
+- **Model catalogs drift.** The documented model id 404'd on a fresh free-tier
+  key; the fix was a newer model generation plus a ListModels fallback that
+  prints what the key can actually use.
+- **Providers attach invisible protocol obligations.** Gemini 3 puts a
+  `thoughtSignature` on its functionCall parts and rejects any replayed
+  history that omits it. Nothing in the request you *build* hints at this —
+  it only surfaces as a 400 on the second round trip.
+- **Parallel tool calls arrive unannounced.** The first live turn contained
+  two tool calls at once; the loop handled it only because the Anthropic wire
+  shape had already forced "iterate over all tool_use blocks" in cycle 2.
+
+Score for the spike: ~70 lines of loop, ~100 lines of provider adapters, and
+100% of the live debugging spent in the adapters. The SDK's job is the part
+that kept breaking.
+
 ## Timebox
 
 Built well inside the 1–2 day box. Deliberately unpolished per the ticket: no streaming, no retry/backoff, single provider, plain-dict messages (the raw wire shape *is* the learning surface — typing them away would have hidden it).
