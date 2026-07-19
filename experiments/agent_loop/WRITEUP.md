@@ -8,8 +8,9 @@
 | File | Role |
 | --- | --- |
 | `loop.py` | The loop itself: ~70 lines, no SDK, no network — the transport is injected |
-| `main.py` | Runnable demo against the real Anthropic Messages API (`uv run main.py`, needs `ANTHROPIC_API_KEY`) |
-| `test_loop.py` | Five tests driving the loop through a scripted fake transport |
+| `main.py` | Runnable demo against a real provider API (`uv run main.py`; free `GEMINI_API_KEY` from aistudio.google.com/apikey, or `ANTHROPIC_API_KEY`) |
+| `gemini.py` | Gemini transport: translates the loop's Anthropic wire shape to/from Gemini's `generateContent` shape |
+| `test_loop.py` / `test_gemini.py` | Nine tests: the loop through a scripted fake transport, plus the pure Gemini translation functions |
 
 ## The mechanics — what an agent loop actually is
 
@@ -37,7 +38,7 @@ Mapping each piece of hand-rolled code to what the SDK does instead:
 | Hand-rolled in this spike | In Pydantic AI |
 | --- | --- |
 | The while-loop, `stop_reason` dispatch, transcript bookkeeping | `agent.run()` — the loop *is* the product |
-| Anthropic-specific wire shapes (`tool_use`/`tool_result` blocks, `x-api-key` header, version header) | Provider-neutral model classes; this exact loop would need rewriting per vendor, the SDK call site wouldn't change (the ADR-0001 reason to pick it) |
+| Anthropic-specific wire shapes (`tool_use`/`tool_result` blocks, `x-api-key` header, version header) | Provider-neutral model classes; the SDK call site doesn't change per vendor (the ADR-0001 reason to pick it). `gemini.py` is this abstraction built by hand once: ~80 lines translating `tool_use`/`tool_result` blocks to `functionCall`/`functionResponse` parts, minting call ids Gemini doesn't provide — multiply by every provider and every wire-format change to price in what the SDK maintains for you |
 | Hand-written JSON Schema for every tool | `@agent.tool` derives schema from the function signature and docstring |
 | Passing the model's raw `input` dict straight into the tool | Pydantic validation of arguments, with validation errors sent *back to the model* as retryable tool results |
 | `final_text: str` — the answer is whatever prose came back | `output_type=SomeModel`: typed, validated outputs, retried on parse failure (what v1 leans on for `FitReport` / `ResumeContent`) |
