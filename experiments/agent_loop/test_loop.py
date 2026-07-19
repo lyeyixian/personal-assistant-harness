@@ -15,21 +15,22 @@ from loop import LoopLimitExceeded, Tool, run_loop
 Json = dict[str, Any]
 
 
-def scripted_model(*responses: Json):
+class ScriptedModel:
     """A fake transport that replays canned API responses in order.
 
     Records every (messages, tool_specs) call so tests can assert on
     what the loop actually sent to the provider.
     """
 
-    calls: list[Json] = []
+    def __init__(self, *responses: Json) -> None:
+        self._responses = responses
+        self.calls: list[Json] = []
 
-    def call_model(messages: list[Json], tool_specs: list[Json]) -> Json:
-        calls.append({"messages": [dict(m) for m in messages], "tool_specs": tool_specs})
-        return responses[len(calls) - 1]
-
-    call_model.calls = calls  # type: ignore[attr-defined]
-    return call_model
+    def __call__(self, messages: list[Json], tool_specs: list[Json]) -> Json:
+        self.calls.append(
+            {"messages": [dict(m) for m in messages], "tool_specs": tool_specs}
+        )
+        return self._responses[len(self.calls) - 1]
 
 
 def text_response(text: str) -> Json:
@@ -61,7 +62,7 @@ ADD_TOOL = Tool(
 
 
 def test_model_answering_directly_returns_its_text() -> None:
-    model = scripted_model(text_response("Paris is the capital of France."))
+    model = ScriptedModel(text_response("Paris is the capital of France."))
 
     result = run_loop(model, tools=[], prompt="What is the capital of France?")
 
@@ -75,7 +76,7 @@ def test_model_answering_directly_returns_its_text() -> None:
 
 
 def test_tool_call_is_dispatched_and_result_fed_back() -> None:
-    model = scripted_model(
+    model = ScriptedModel(
         tool_use_response("toolu_01", "add", {"a": 2, "b": 3}),
         text_response("2 + 3 = 5"),
     )
@@ -109,7 +110,7 @@ def test_tool_call_is_dispatched_and_result_fed_back() -> None:
 
 
 def test_chained_tool_calls_loop_until_done() -> None:
-    model = scripted_model(
+    model = ScriptedModel(
         tool_use_response("toolu_01", "add", {"a": 1, "b": 2}),
         tool_use_response("toolu_02", "add", {"a": 3, "b": 4}),
         text_response("The answers are 3 and 7."),
@@ -132,7 +133,7 @@ def test_chained_tool_calls_loop_until_done() -> None:
 
 
 def test_unknown_tool_returns_error_result_and_loop_survives() -> None:
-    model = scripted_model(
+    model = ScriptedModel(
         tool_use_response("toolu_01", "subtract", {"a": 5, "b": 2}),
         text_response("I don't have a subtract tool."),
     )
@@ -154,7 +155,7 @@ def test_unknown_tool_returns_error_result_and_loop_survives() -> None:
 
 
 def test_loop_stops_at_max_iterations() -> None:
-    model = scripted_model(
+    model = ScriptedModel(
         tool_use_response("toolu_01", "add", {"a": 1, "b": 1}),
         tool_use_response("toolu_02", "add", {"a": 2, "b": 2}),
         tool_use_response("toolu_03", "add", {"a": 3, "b": 3}),
