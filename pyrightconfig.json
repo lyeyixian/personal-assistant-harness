@@ -1,0 +1,7 @@
+{
+    "typeCheckingMode": "strict",
+    "include": ["experiments"],
+    "venvPath": "experiments/agent_loop",
+    "venv": ".venv",
+    "executionEnvironments": [{ "root": "experiments/agent_loop" }]
+}
