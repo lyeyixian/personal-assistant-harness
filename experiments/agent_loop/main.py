@@ -19,7 +19,7 @@ from loop import CallModel, Json, Tool, run_loop
 
 ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages"
 ANTHROPIC_DEFAULT_MODEL = "claude-haiku-4-5-20251001"
-GEMINI_DEFAULT_MODEL = "gemini-2.5-flash"
+GEMINI_DEFAULT_MODEL = "gemini-3.5-flash"
 
 TOOLS = [
     Tool(
