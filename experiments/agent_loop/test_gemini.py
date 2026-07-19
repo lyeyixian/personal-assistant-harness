@@ -26,7 +26,7 @@ def test_plain_user_message_and_tools_translate_to_gemini_shape() -> None:
     request = to_gemini_request(
         messages=[{"role": "user", "content": "What is 2 + 3?"}],
         tool_specs=[ADD_SPEC],
-        id_to_name={},
+        calls={},
     )
 
     assert request == {
@@ -46,7 +46,7 @@ def test_plain_user_message_and_tools_translate_to_gemini_shape() -> None:
 
 
 def test_function_call_response_translates_to_tool_use() -> None:
-    id_to_name: dict[str, str] = {}
+    calls: dict[str, Json] = {}
     body: Json = {
         "candidates": [
             {
@@ -58,15 +58,66 @@ def test_function_call_response_translates_to_tool_use() -> None:
         ]
     }
 
-    response = from_gemini_response(body, id_to_name)
+    response = from_gemini_response(body, calls)
 
     assert response["stop_reason"] == "tool_use"
     (block,) = response["content"]
     assert block["type"] == "tool_use"
     assert block["name"] == "add"
     assert block["input"] == {"a": 2, "b": 3}
-    # The generated id is recorded so the tool_result can be mapped back.
-    assert id_to_name[block["id"]] == "add"
+    # The raw part is stashed under the generated id so the tool_result
+    # can be mapped back and the part replayed verbatim.
+    assert calls[block["id"]]["functionCall"]["name"] == "add"
+
+
+def test_thought_signature_survives_the_round_trip() -> None:
+    # Gemini 3 attaches a thoughtSignature to functionCall parts and
+    # rejects replayed history that omits it (400).
+    calls: dict[str, Json] = {}
+    body: Json = {
+        "candidates": [
+            {
+                "content": {
+                    "role": "model",
+                    "parts": [
+                        {
+                            "functionCall": {"name": "add", "args": {"a": 2, "b": 3}},
+                            "thoughtSignature": "sig-abc123",
+                        }
+                    ],
+                }
+            }
+        ]
+    }
+
+    response = from_gemini_response(body, calls)
+    (block,) = response["content"]
+
+    request = to_gemini_request(
+        messages=[
+            {"role": "user", "content": "What is 2 + 3?"},
+            {"role": "assistant", "content": [block]},
+            {
+                "role": "user",
+                "content": [
+                    {"type": "tool_result", "tool_use_id": block["id"], "content": "5"}
+                ],
+            },
+        ],
+        tool_specs=[ADD_SPEC],
+        calls=calls,
+    )
+
+    # The echoed model turn is the raw part, signature intact.
+    assert request["contents"][1] == {
+        "role": "model",
+        "parts": [
+            {
+                "functionCall": {"name": "add", "args": {"a": 2, "b": 3}},
+                "thoughtSignature": "sig-abc123",
+            }
+        ],
+    }
 
 
 def test_text_response_translates_to_end_turn() -> None:
@@ -85,7 +136,9 @@ def test_text_response_translates_to_end_turn() -> None:
 
 
 def test_tool_use_and_tool_result_history_translates_back() -> None:
-    id_to_name = {"gemini_call_1": "add"}
+    calls: dict[str, Json] = {
+        "gemini_call_1": {"functionCall": {"name": "add", "args": {"a": 2, "b": 3}}}
+    }
     request = to_gemini_request(
         messages=[
             {"role": "user", "content": "What is 2 + 3?"},
@@ -103,7 +156,7 @@ def test_tool_use_and_tool_result_history_translates_back() -> None:
             },
         ],
         tool_specs=[ADD_SPEC],
-        id_to_name=id_to_name,
+        calls=calls,
     )
 
     assert request["contents"][1] == {

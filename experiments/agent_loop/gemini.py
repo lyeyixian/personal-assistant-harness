@@ -7,8 +7,11 @@ provider-normalization work an SDK like Pydantic AI does behind one
 call site.
 
 Gemini function calls carry no id, so the transport mints its own
-(gemini_call_N) and keeps an id → function-name map to translate
-tool_result blocks back into named functionResponse parts.
+(gemini_call_N) and stashes each raw functionCall part under that id.
+The stash serves two purposes: mapping tool_result blocks back to named
+functionResponse parts, and replaying the model's functionCall parts
+verbatim — Gemini 3 attaches a thoughtSignature to them and returns 400
+if a replayed conversation omits it.
 """
 
 from typing import Any
@@ -36,7 +39,7 @@ def available_models(client: httpx.Client, api_key: str) -> list[str]:
 
 
 def to_gemini_request(
-    messages: list[Json], tool_specs: list[Json], id_to_name: dict[str, str]
+    messages: list[Json], tool_specs: list[Json], calls: dict[str, Json]
 ) -> Json:
     contents: list[Json] = []
     for message in messages:
@@ -50,11 +53,15 @@ def to_gemini_request(
                 if block["type"] == "text":
                     parts.append({"text": block["text"]})
                 elif block["type"] == "tool_use":
+                    # Replay the stashed raw part (thoughtSignature intact).
                     parts.append(
-                        {"functionCall": {"name": block["name"], "args": block["input"]}}
+                        calls.get(
+                            block["id"],
+                            {"functionCall": {"name": block["name"], "args": block["input"]}},
+                        )
                     )
                 elif block["type"] == "tool_result":
-                    name = id_to_name[block["tool_use_id"]]
+                    name = calls[block["tool_use_id"]]["functionCall"]["name"]
                     parts.append(
                         {
                             "functionResponse": {
@@ -82,16 +89,16 @@ def to_gemini_request(
     return request
 
 
-def from_gemini_response(body: Json, id_to_name: dict[str, str]) -> Json:
+def from_gemini_response(body: Json, calls: dict[str, Json]) -> Json:
     parts: list[Json] = body["candidates"][0]["content"]["parts"]
     blocks: list[Json] = []
     has_call = False
     for part in parts:
         if "functionCall" in part:
             has_call = True
-            call_id = f"gemini_call_{len(id_to_name) + 1}"
+            call_id = f"gemini_call_{len(calls) + 1}"
             call: Json = part["functionCall"]
-            id_to_name[call_id] = call["name"]
+            calls[call_id] = part
             blocks.append(
                 {
                     "type": "tool_use",
@@ -111,7 +118,7 @@ def from_gemini_response(body: Json, id_to_name: dict[str, str]) -> Json:
 def gemini_transport(api_key: str, model: str) -> CallModel:
     """Build a call_model closure that POSTs to the Gemini generateContent API."""
     client = httpx.Client(timeout=60)
-    id_to_name: dict[str, str] = {}
+    calls: dict[str, Json] = {}
     round_no = 0
 
     def call_model(messages: list[Json], tool_specs: list[Json]) -> Json:
@@ -121,7 +128,7 @@ def gemini_transport(api_key: str, model: str) -> CallModel:
         response = client.post(
             API_URL.format(model=model),
             headers={"x-goog-api-key": api_key, "content-type": "application/json"},
-            json=to_gemini_request(messages, tool_specs, id_to_name),
+            json=to_gemini_request(messages, tool_specs, calls),
         )
         if response.status_code == 404:
             names = "\n  ".join(available_models(client, api_key))
@@ -130,9 +137,11 @@ def gemini_transport(api_key: str, model: str) -> CallModel:
                 f"Models your key can use:\n  {names}\n"
                 f"Re-run with: SPIKE_MODEL=<model-id> uv run main.py"
             )
+        if response.is_error:
+            print(f"    error body: {response.text}")
         response.raise_for_status()
         raw: dict[str, Any] = response.json()
-        translated = from_gemini_response(raw, id_to_name)
+        translated = from_gemini_response(raw, calls)
         print(f"    stop_reason={translated['stop_reason']}")
         for block in translated["content"]:
             if block["type"] == "tool_use":
