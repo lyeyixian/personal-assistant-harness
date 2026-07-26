@@ -64,18 +64,6 @@ class TestParsePosting:
 
         assert posting.market == "remote"
 
-    def test_url_is_carried_through_untouched(self) -> None:
-        text = "AI Engineer at Anthropic\n"
-
-        posting = parse_posting(text, url="https://example.com/job/123")
-
-        assert posting.url == "https://example.com/job/123"
-
-    def test_url_defaults_to_none(self) -> None:
-        posting = parse_posting("AI Engineer at Anthropic\n")
-
-        assert posting.url is None
-
     def test_extracts_bulleted_requirements(self) -> None:
         text = (
             "AI Engineer at Anthropic\n\n"

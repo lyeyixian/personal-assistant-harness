@@ -9,6 +9,7 @@ from assistant.modules.job_search.cli import (
     _read_posting_text,  # pyright: ignore[reportPrivateUsage]
     app,
 )
+from tests.modules.job_search._helpers import job_note_body
 
 runner = CliRunner()
 
@@ -34,9 +35,7 @@ class TestAddFromFile:
         runner.invoke(app, ["add", str(posting_file)])
 
         note = (isolated_settings / "jobs" / "anthropic-ai-engineer.md").read_text()
-        _, _, body = note.partition("---\n")
-        _, _, body = body.partition("---\n")
-        assert body == POSTING_TEXT
+        assert job_note_body(note) == POSTING_TEXT
 
     def test_market_override_is_stored_in_frontmatter(
         self, tmp_path: Path, isolated_settings: Path
@@ -59,9 +58,7 @@ class TestAddFromFile:
         assert result.exit_code == 0, result.output
         note = (isolated_settings / "jobs" / "anthropic-ai-engineer.md").read_text()
         assert "url: https://example.com/job" in note
-        _, _, body = note.partition("---\n")
-        _, _, body = body.partition("---\n")
-        assert body == POSTING_TEXT
+        assert job_note_body(note) == POSTING_TEXT
 
     def test_missing_file_fails_with_a_clear_error(self) -> None:
         result = runner.invoke(app, ["add", "does-not-exist.txt"])

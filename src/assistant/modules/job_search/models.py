@@ -19,4 +19,3 @@ class JobPosting(BaseModel):
     market: Market
     requirements: list[str]
     keywords: list[str]
-    url: str | None = None

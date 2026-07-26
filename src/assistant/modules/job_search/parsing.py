@@ -102,7 +102,7 @@ def _extract_keywords(requirements: list[str]) -> list[str]:
     return list(seen)
 
 
-def parse_posting(text: str, *, market: Market | None = None, url: str | None = None) -> JobPosting:
+def parse_posting(text: str, *, market: Market | None = None) -> JobPosting:
     """Parse pasted posting text into a `JobPosting`; `market` overrides inference."""
     title, company = _extract_title_and_company(text)
     requirements = _extract_requirements(text)
@@ -113,5 +113,4 @@ def parse_posting(text: str, *, market: Market | None = None, url: str | None = 
         market=market or infer_market(text),
         requirements=requirements,
         keywords=_extract_keywords(requirements),
-        url=url,
     )
