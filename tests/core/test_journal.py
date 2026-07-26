@@ -185,9 +185,7 @@ def test_pending_journal_files_ignores_bullets_already_under_folded(tmp_path: Pa
 
 
 def test_pending_journal_files_extracts_a_wikilink_hint(tmp_path: Path) -> None:
-    add_entry(
-        tmp_path, "praised for [[acme-platform-team]] work", now=datetime(2026, 7, 26, 8, 0)
-    )
+    add_entry(tmp_path, "praised for [[acme-platform-team]] work", now=datetime(2026, 7, 26, 8, 0))
 
     files = pending_journal_files(tmp_path)
 
@@ -212,9 +210,7 @@ def test_apply_fold_moves_bullets_under_folded_with_a_target_pointer_and_flips_t
     apply_fold(path, folded_bullet_lines=["- 18:05 shipped the thing → [[acme-platform-team]]"])
 
     assert path.read_text() == (
-        "---\nfolded: true\n---\n"
-        "## Folded\n"
-        "- 18:05 shipped the thing → [[acme-platform-team]]\n"
+        "---\nfolded: true\n---\n## Folded\n- 18:05 shipped the thing → [[acme-platform-team]]\n"
     )
 
 
