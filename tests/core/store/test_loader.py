@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from assistant.core.store.loader import load_store
+from assistant.core.store.loader import load_store, note_path
 
 
 def test_load_store_returns_every_curated_note(fixture_vault_path: Path) -> None:
@@ -79,3 +79,27 @@ def test_experience_store_note_lookup_returns_none_for_unknown_slug(
     store = load_store(fixture_vault_path)
 
     assert store.note("does-not-exist") is None
+
+
+def test_note_path_is_the_inverse_of_the_directory_scan(fixture_vault_path: Path) -> None:
+    store = load_store(fixture_vault_path)
+
+    role = store.note("acme-payments-rotation")
+    project = store.note("oss-contribution")
+    story = store.note("prod-migration-rollback")
+    assert role is not None
+    assert project is not None
+    assert story is not None
+
+    assert (
+        note_path(fixture_vault_path, role)
+        == fixture_vault_path / "roles" / "acme-payments-rotation.md"
+    )
+    assert (
+        note_path(fixture_vault_path, project)
+        == fixture_vault_path / "projects" / "oss-contribution.md"
+    )
+    assert (
+        note_path(fixture_vault_path, story)
+        == fixture_vault_path / "stories" / "prod-migration-rollback.md"
+    )

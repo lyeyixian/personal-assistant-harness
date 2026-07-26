@@ -18,6 +18,7 @@ _NOTE_DIRECTORIES: dict[str, NoteType] = {
     "projects": "project",
     "stories": "story",
 }
+_DIRECTORIES_BY_NOTE_TYPE = {note_type: dirname for dirname, note_type in _NOTE_DIRECTORIES.items()}
 
 
 def _load_note(path: Path, note_type: NoteType) -> Note:
@@ -51,3 +52,10 @@ def load_store(vault_path: Path) -> ExperienceStore:
                 notes.append(_load_note(path, note_type))
 
     return ExperienceStore(notes=tuple(notes))
+
+
+def note_path(vault_path: Path, note: Note) -> Path:
+    """The file `load_store` read `note` from - the inverse of its directory
+    scan, and the single source of truth for vault layout that write paths
+    (the Fold) reuse rather than re-deriving."""
+    return vault_path / _DIRECTORIES_BY_NOTE_TYPE[note.type] / f"{note.slug}.md"

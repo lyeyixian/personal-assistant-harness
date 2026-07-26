@@ -60,6 +60,6 @@ def fold() -> None:
         f"Achievements: {result.achievements_created} new, "
         f"{result.achievements_updated} updated. "
         f"Stories: {result.stories_created} new. "
-        f"Skills added: {result.skills_added}."
+        f"Skills newly registered: {result.skills_registered}."
     )
     typer.echo("Review the changes with `git diff` in your vault before committing.")

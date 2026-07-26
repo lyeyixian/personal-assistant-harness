@@ -15,19 +15,20 @@ from pydantic_ai.models.test import TestModel
 
 from assistant.core.config import Settings
 from assistant.core.journal.capture import add_entry
-from assistant.core.journal.fold import FoldPlan, run_fold
+from assistant.core.journal.fold import FoldDeps, run_fold
+from assistant.core.journal.fold_types import FoldPlan
 
 
-def _agent_returning(custom_output_args: dict[str, Any]) -> Agent[None, FoldPlan]:
+def _agent_returning(custom_output_args: dict[str, Any]) -> Agent[FoldDeps, FoldPlan]:
     model = TestModel(custom_output_args=custom_output_args)
-    return Agent(model, output_type=FoldPlan, deps_type=type(None))
+    return Agent(model, output_type=FoldPlan, deps_type=FoldDeps)
 
 
-def _raising_agent() -> Agent[None, FoldPlan]:
+def _raising_agent() -> Agent[FoldDeps, FoldPlan]:
     def _fail(messages: list[ModelMessage], info: AgentInfo) -> ModelResponse:
         raise AssertionError("the fold agent must not be called when nothing is pending")
 
-    return Agent(FunctionModel(_fail), output_type=FoldPlan, deps_type=type(None))
+    return Agent(FunctionModel(_fail), output_type=FoldPlan, deps_type=FoldDeps)
 
 
 def test_run_fold_is_a_no_op_when_nothing_is_pending(
@@ -70,7 +71,7 @@ def test_run_fold_creates_a_new_achievement_for_the_current_role(
     result = run_fold(fold_vault, settings, agent=agent)
 
     assert result.achievements_created == 1
-    assert result.skills_added == 1
+    assert result.skills_registered == 1
 
     role_text = (fold_vault / "roles" / "acme-platform-team.md").read_text()
     assert "### Retry-safe queue consumer" in role_text
@@ -229,7 +230,7 @@ def test_run_fold_adds_a_known_skill_to_frontmatter_without_duplicating_the_regi
 
     result = run_fold(fold_vault, settings, agent=agent)
 
-    assert result.skills_added == 0
+    assert result.skills_registered == 0
     payments_text = (fold_vault / "roles" / "acme-payments-rotation.md").read_text()
     assert (
         "skills: [csharp, dotnet-core, postgresql, testcontainers, ci-cd, docker]" in payments_text
