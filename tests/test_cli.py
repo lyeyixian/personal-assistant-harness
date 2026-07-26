@@ -16,6 +16,13 @@ def isolated_config(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     return config_path
 
 
+@pytest.fixture
+def vault_path(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
+    path = tmp_path / "vault"
+    monkeypatch.setenv("VAULT_PATH", str(path))
+    return path
+
+
 def test_help_shows_the_command_surface() -> None:
     result = runner.invoke(app, ["--help"])
 
@@ -66,3 +73,29 @@ def test_init_overwrites_when_confirmed(isolated_config: Path) -> None:
 
     assert result.exit_code == 0, result.output
     assert 'vault_path = "/new/vault"' in isolated_config.read_text()
+
+
+def test_journal_add_creates_todays_file(vault_path: Path) -> None:
+    result = runner.invoke(app, ["journal", "add", "shipped the thing"])
+
+    assert result.exit_code == 0, result.output
+    journal_files = list((vault_path / "journal").glob("*.md"))
+    assert len(journal_files) == 1
+    assert "shipped the thing" in journal_files[0].read_text()
+
+
+def test_journal_list_shows_an_added_entry(vault_path: Path) -> None:
+    runner.invoke(app, ["journal", "add", "shipped the thing"])
+
+    result = runner.invoke(app, ["journal", "list"])
+
+    assert result.exit_code == 0, result.output
+    assert "shipped the thing" in result.output
+    assert "pending" in result.output
+
+
+def test_journal_list_reports_when_empty(vault_path: Path) -> None:
+    result = runner.invoke(app, ["journal", "list"])
+
+    assert result.exit_code == 0, result.output
+    assert "No journal entries" in result.output
