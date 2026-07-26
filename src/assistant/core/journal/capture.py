@@ -34,11 +34,30 @@ class JournalEntry:
     folded: bool
 
 
+@dataclass(frozen=True, slots=True)
+class PendingBullet:
+    """One unmarked bullet above `## Folded` - the Fold's unit of work."""
+
+    raw: str
+    text: str
+    wikilink: str | None
+
+
+@dataclass(frozen=True, slots=True)
+class PendingJournalFile:
+    path: Path
+    date: date
+    bullets: tuple[PendingBullet, ...]
+
+
 @dataclass(frozen=True)
 class _ParsedJournalFile:
     folded: bool
     pending_text: str
     folded_text: str
+
+
+_WIKILINK_RE = re.compile(r"\[\[([a-z0-9-]+)\]\]")
 
 
 def add_entry(vault_path: Path, text: str, *, now: datetime | None = None) -> JournalAddResult:
@@ -95,6 +114,63 @@ def list_entries(vault_path: Path, *, limit: int = 20) -> list[JournalEntry]:
         if len(entries) >= limit:
             break
     return entries[:limit]
+
+
+def pending_journal_files(vault_path: Path) -> list[PendingJournalFile]:
+    """Every journal file with at least one unmarked bullet above `## Folded`.
+
+    This is the Fold's file-selection query: pending is a property of the
+    bullets, not the `folded:` frontmatter flag, so a file is picked up here
+    regardless of whether the flag happens to agree - matching the schema
+    spec's "pending = unmarked bullets above `## Folded`" definition.
+    """
+    journal_dir = vault_path / "journal"
+    if not journal_dir.is_dir():
+        return []
+
+    files = sorted(
+        (f for f in journal_dir.glob("*.md") if _DATE_RE.match(f.stem)),
+        key=lambda f: f.stem,
+    )
+
+    pending: list[PendingJournalFile] = []
+    for file in files:
+        parsed = _parse_journal_file(file.read_text())
+        raw_bullets = _extract_bullets(parsed.pending_text)
+        if not raw_bullets:
+            continue
+        bullets = tuple(
+            PendingBullet(raw=raw, text=_bullet_text(raw), wikilink=_extract_wikilink(raw))
+            for raw in raw_bullets
+        )
+        pending.append(
+            PendingJournalFile(path=file, date=date.fromisoformat(file.stem), bullets=bullets)
+        )
+    return pending
+
+
+def apply_fold(path: Path, *, folded_bullet_lines: list[str]) -> None:
+    """Move every pending bullet (already rewritten with its `→ [[target]]`
+    pointer) under `## Folded`, clear pending, and flip the flag to `true`.
+
+    Purely mechanical write-back - the Fold pipeline decides what each
+    `folded_bullet_lines` entry says; this only knows how to place it.
+    """
+    parsed = _parse_journal_file(path.read_text())
+    new_bullets_block = "\n".join(folded_bullet_lines)
+
+    if parsed.folded_text:
+        folded_block = f"{parsed.folded_text.rstrip()}\n{new_bullets_block}\n"
+    else:
+        folded_block = f"{_FOLDED_HEADING}\n{new_bullets_block}\n"
+
+    header = f"{_FRONT_MATTER_FENCE}folded: true\n{_FRONT_MATTER_FENCE}"
+    path.write_text(header + folded_block)
+
+
+def _extract_wikilink(bullet: str) -> str | None:
+    match = _WIKILINK_RE.search(bullet)
+    return match.group(1) if match else None
 
 
 def _bullet_text(bullet: str) -> str:

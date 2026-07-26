@@ -1,3 +1,4 @@
+import shutil
 from collections.abc import Callable
 from pathlib import Path
 
@@ -22,9 +23,10 @@ def make_settings(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Callable[.
         agent_retries: int = 3,
         usage_request_limit: int | None = 50,
         usage_total_tokens_limit: int | None = None,
+        vault_path: Path | None = None,
     ) -> Settings:
         return Settings(
-            vault_path=tmp_path / "vault",
+            vault_path=vault_path if vault_path is not None else tmp_path / "vault",
             default_model=default_model,
             agent_retries=agent_retries,
             usage_request_limit=usage_request_limit,
@@ -32,3 +34,14 @@ def make_settings(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Callable[.
         )
 
     return _make
+
+
+@pytest.fixture
+def fold_vault(tmp_path: Path, fixture_vault_path: Path) -> Path:
+    """A writable copy of the fixture vault with an empty `journal/` - Fold
+    tests populate their own pending entries rather than reusing the
+    read-path fixtures' sentinel journal file."""
+    vault_path = tmp_path / "vault"
+    shutil.copytree(fixture_vault_path, vault_path)
+    shutil.rmtree(vault_path / "journal")
+    return vault_path

@@ -7,6 +7,7 @@ except the single CLI-mounting line in `assistant.cli`.
 from assistant.core.agents import create_agent, usage_limits
 from assistant.core.config import Settings, get_settings
 from assistant.core.journal.capture import JournalEntry, add_entry, list_entries
+from assistant.core.journal.fold import FoldedFileSummary, FoldResult, run_fold
 from assistant.core.store import (
     Achievement,
     ExperienceStore,
@@ -21,6 +22,8 @@ from assistant.core.store import (
 __all__ = [
     "Achievement",
     "ExperienceStore",
+    "FoldResult",
+    "FoldedFileSummary",
     "JournalEntry",
     "Note",
     "NoteType",
@@ -32,6 +35,7 @@ __all__ = [
     "get_settings",
     "list_entries",
     "load_store",
+    "run_fold",
     "usage_limits",
     "validate_provenance",
 ]

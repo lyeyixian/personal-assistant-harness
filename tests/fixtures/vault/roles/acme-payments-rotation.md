@@ -5,7 +5,7 @@ title: Software Engineer
 team: Payments Platform
 programme: acme-grad
 start: 2025-03
-end: null
+end: 2025-09
 skills: [csharp, dotnet-core, postgresql, testcontainers, ci-cd]
 ---
 ## Context

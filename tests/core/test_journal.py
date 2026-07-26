@@ -1,7 +1,13 @@
 from datetime import date, datetime
 from pathlib import Path
 
-from assistant.core.journal.capture import JournalEntry, add_entry, list_entries
+from assistant.core.journal.capture import (
+    JournalEntry,
+    add_entry,
+    apply_fold,
+    list_entries,
+    pending_journal_files,
+)
 
 
 def test_add_creates_todays_file_with_folded_false(tmp_path: Path) -> None:
@@ -131,3 +137,103 @@ def test_appending_never_drops_hand_written_content_that_is_not_a_flush_bullet(
 
 def _entry(iso_date: str, text: str, *, folded: bool) -> JournalEntry:
     return JournalEntry(date=date.fromisoformat(iso_date), text=text, folded=folded)
+
+
+def test_pending_journal_files_returns_nothing_when_vault_has_no_journal(tmp_path: Path) -> None:
+    assert pending_journal_files(tmp_path) == []
+
+
+def test_pending_journal_files_skips_fully_folded_days(tmp_path: Path) -> None:
+    journal_dir = tmp_path / "journal"
+    journal_dir.mkdir()
+    (journal_dir / "2026-07-17.md").write_text(
+        "---\nfolded: true\n---\n## Folded\n- 14:20 shipped it → [[acme-platform-team]]\n"
+    )
+
+    assert pending_journal_files(tmp_path) == []
+
+
+def test_pending_journal_files_finds_unmarked_bullets_above_the_folded_heading(
+    tmp_path: Path,
+) -> None:
+    add_entry(tmp_path, "shipped the thing", now=datetime(2026, 7, 26, 18, 5))
+
+    files = pending_journal_files(tmp_path)
+
+    assert len(files) == 1
+    assert files[0].date == date(2026, 7, 26)
+    assert len(files[0].bullets) == 1
+    assert files[0].bullets[0].raw == "- 18:05 shipped the thing"
+    assert files[0].bullets[0].text == "18:05 shipped the thing"
+    assert files[0].bullets[0].wikilink is None
+
+
+def test_pending_journal_files_ignores_bullets_already_under_folded(tmp_path: Path) -> None:
+    journal_dir = tmp_path / "journal"
+    journal_dir.mkdir()
+    (journal_dir / "2026-07-17.md").write_text(
+        "---\nfolded: false\n---\n"
+        "- 09:00 new pending work\n\n"
+        "## Folded\n"
+        "- 14:20 shipped the queue integration → [[acme-platform-team]]\n"
+    )
+
+    files = pending_journal_files(tmp_path)
+
+    assert len(files) == 1
+    assert [b.text for b in files[0].bullets] == ["09:00 new pending work"]
+
+
+def test_pending_journal_files_extracts_a_wikilink_hint(tmp_path: Path) -> None:
+    add_entry(
+        tmp_path, "praised for [[acme-platform-team]] work", now=datetime(2026, 7, 26, 8, 0)
+    )
+
+    files = pending_journal_files(tmp_path)
+
+    assert files[0].bullets[0].wikilink == "acme-platform-team"
+
+
+def test_pending_journal_files_are_sorted_oldest_first(tmp_path: Path) -> None:
+    add_entry(tmp_path, "day two", now=datetime(2026, 7, 25, 9, 0))
+    add_entry(tmp_path, "day one", now=datetime(2026, 7, 24, 9, 0))
+
+    files = pending_journal_files(tmp_path)
+
+    assert [f.date for f in files] == [date(2026, 7, 24), date(2026, 7, 25)]
+
+
+def test_apply_fold_moves_bullets_under_folded_with_a_target_pointer_and_flips_the_flag(
+    tmp_path: Path,
+) -> None:
+    add_entry(tmp_path, "shipped the thing", now=datetime(2026, 7, 26, 18, 5))
+    path = tmp_path / "journal" / "2026-07-26.md"
+
+    apply_fold(path, folded_bullet_lines=["- 18:05 shipped the thing → [[acme-platform-team]]"])
+
+    assert path.read_text() == (
+        "---\nfolded: true\n---\n"
+        "## Folded\n"
+        "- 18:05 shipped the thing → [[acme-platform-team]]\n"
+    )
+
+
+def test_apply_fold_appends_after_existing_folded_content(tmp_path: Path) -> None:
+    journal_dir = tmp_path / "journal"
+    journal_dir.mkdir()
+    path = journal_dir / "2026-07-17.md"
+    path.write_text(
+        "---\nfolded: false\n---\n"
+        "- 18:05 new pending work\n\n"
+        "## Folded\n"
+        "- 14:20 shipped the queue integration → [[acme-platform-team]]\n"
+    )
+
+    apply_fold(path, folded_bullet_lines=["- 18:05 new pending work → [[acme-platform-team]]"])
+
+    assert path.read_text() == (
+        "---\nfolded: true\n---\n"
+        "## Folded\n"
+        "- 14:20 shipped the queue integration → [[acme-platform-team]]\n"
+        "- 18:05 new pending work → [[acme-platform-team]]\n"
+    )

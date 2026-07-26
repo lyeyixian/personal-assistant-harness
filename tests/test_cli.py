@@ -99,3 +99,29 @@ def test_journal_list_reports_when_empty(vault_path: Path) -> None:
 
     assert result.exit_code == 0, result.output
     assert "No journal entries" in result.output
+
+
+def test_journal_fold_reports_nothing_pending(vault_path: Path) -> None:
+    result = runner.invoke(app, ["journal", "fold"])
+
+    assert result.exit_code == 0, result.output
+    assert "Nothing pending" in result.output
+
+
+def test_journal_fold_folds_a_pending_entry(
+    vault_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("DEFAULT_MODEL", "test")
+    (vault_path / "roles").mkdir(parents=True)
+    (vault_path / "roles" / "current-role.md").write_text(
+        "---\ntype: role\ncompany: Acme\ntitle: Engineer\nstart: 2026-01\nend: null\n"
+        "skills: []\n---\n## Achievements\n"
+    )
+    runner.invoke(app, ["journal", "add", "shipped a small fix"])
+
+    result = runner.invoke(app, ["journal", "fold"])
+
+    assert result.exit_code == 0, result.output
+    assert "Folded 1 entry across 1 file." in result.output
+    journal_files = list((vault_path / "journal").glob("*.md"))
+    assert "folded: true" in journal_files[0].read_text()
