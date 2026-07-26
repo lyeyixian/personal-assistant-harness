@@ -2,7 +2,14 @@ from datetime import date
 from pathlib import Path
 
 from assistant.modules.job_search.models import JobPosting
-from assistant.modules.job_search.notes import job_slug, list_job_notes, mint_job_note
+from assistant.modules.job_search.notes import (
+    job_note_exists,
+    job_slug,
+    list_job_notes,
+    mint_job_note,
+    read_job_note,
+    write_fit_report,
+)
 from tests.modules.job_search._helpers import job_note_body
 
 RAW_TEXT = "AI Engineer at Anthropic\n\nRequirements:\n- 5+ years of Python\n"
@@ -104,3 +111,124 @@ class TestListJobNotes:
         assert anthropic.verdict is None
         assert anthropic.direction is None
         assert anthropic.analyzed is None
+
+
+class TestJobNoteExists:
+    def test_false_when_no_note_at_the_slug(self, tmp_path: Path) -> None:
+        assert job_note_exists(tmp_path / "vault", "anthropic-ai-engineer") is False
+
+    def test_true_once_minted(self, tmp_path: Path) -> None:
+        vault = tmp_path / "vault"
+        mint_job_note(vault, _posting(), RAW_TEXT, today=date(2026, 7, 19))
+
+        assert job_note_exists(vault, "anthropic-ai-engineer") is True
+
+
+class TestReadJobNote:
+    def test_reads_frontmatter_and_the_verbatim_posting_text(self, tmp_path: Path) -> None:
+        vault = tmp_path / "vault"
+        mint_job_note(vault, _posting(), RAW_TEXT, today=date(2026, 7, 19))
+
+        note = read_job_note(vault, "anthropic-ai-engineer")
+
+        assert note.slug == "anthropic-ai-engineer"
+        assert note.frontmatter["company"] == "Anthropic"
+        assert note.posting_text == RAW_TEXT
+
+    def test_strips_a_prior_fit_section_out_of_the_posting_text(self, tmp_path: Path) -> None:
+        vault = tmp_path / "vault"
+        mint_job_note(vault, _posting(), RAW_TEXT, today=date(2026, 7, 19))
+        write_fit_report(
+            vault,
+            "anthropic-ai-engineer",
+            "## Fit analysis\n\n**Verdict:** good-fit\n",
+            verdict="good-fit",
+            direction="aligned",
+            analyzed=date(2026, 7, 20),
+        )
+
+        note = read_job_note(vault, "anthropic-ai-engineer")
+
+        assert note.posting_text == RAW_TEXT
+
+
+class TestWriteFitReport:
+    def test_lifts_verdict_direction_and_analyzed_into_frontmatter(self, tmp_path: Path) -> None:
+        vault = tmp_path / "vault"
+        mint_job_note(vault, _posting(), RAW_TEXT, today=date(2026, 7, 19))
+
+        write_fit_report(
+            vault,
+            "anthropic-ai-engineer",
+            "## Fit analysis\n\nSome report body.\n",
+            verdict="strong-fit",
+            direction="aligned",
+            analyzed=date(2026, 7, 20),
+        )
+
+        content = (vault / "jobs" / "anthropic-ai-engineer.md").read_text()
+        assert "verdict: strong-fit" in content
+        assert "direction: aligned" in content
+        assert "analyzed: '2026-07-20'" in content or "analyzed: 2026-07-20" in content
+
+    def test_preserves_other_frontmatter_fields(self, tmp_path: Path) -> None:
+        vault = tmp_path / "vault"
+        mint_job_note(
+            vault, _posting(), RAW_TEXT, today=date(2026, 7, 19), url="https://example.com/job"
+        )
+
+        write_fit_report(
+            vault,
+            "anthropic-ai-engineer",
+            "## Fit analysis\n",
+            verdict="strong-fit",
+            direction="aligned",
+            analyzed=date(2026, 7, 20),
+        )
+
+        content = (vault / "jobs" / "anthropic-ai-engineer.md").read_text()
+        assert "company: Anthropic" in content
+        assert "url: https://example.com/job" in content
+
+    def test_leaves_the_posting_text_untouched(self, tmp_path: Path) -> None:
+        vault = tmp_path / "vault"
+        mint_job_note(vault, _posting(), RAW_TEXT, today=date(2026, 7, 19))
+
+        write_fit_report(
+            vault,
+            "anthropic-ai-engineer",
+            "## Fit analysis\n\nSome report body.\n",
+            verdict="strong-fit",
+            direction="aligned",
+            analyzed=date(2026, 7, 20),
+        )
+
+        note = read_job_note(vault, "anthropic-ai-engineer")
+        assert note.posting_text == RAW_TEXT
+
+    def test_rerun_replaces_the_fit_section_wholesale(self, tmp_path: Path) -> None:
+        vault = tmp_path / "vault"
+        mint_job_note(vault, _posting(), RAW_TEXT, today=date(2026, 7, 19))
+
+        write_fit_report(
+            vault,
+            "anthropic-ai-engineer",
+            "## Fit analysis\n\nFirst run body.\n",
+            verdict="stretch",
+            direction="caution",
+            analyzed=date(2026, 7, 19),
+        )
+        write_fit_report(
+            vault,
+            "anthropic-ai-engineer",
+            "## Fit analysis\n\nSecond run body.\n",
+            verdict="strong-fit",
+            direction="aligned",
+            analyzed=date(2026, 7, 20),
+        )
+
+        content = (vault / "jobs" / "anthropic-ai-engineer.md").read_text()
+        assert content.count("## Fit analysis") == 1
+        assert "First run body" not in content
+        assert "Second run body" in content
+        assert "verdict: strong-fit" in content
