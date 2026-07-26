@@ -6,10 +6,28 @@ except the single CLI-mounting line in `assistant.cli`.
 
 from assistant.core.agents import create_agent, usage_limits
 from assistant.core.config import Settings, get_settings
+from assistant.core.store import (
+    Achievement,
+    ExperienceStore,
+    Note,
+    NoteType,
+    ProvenanceReason,
+    ProvenanceResult,
+    load_store,
+    validate_provenance,
+)
 
 __all__ = [
+    "Achievement",
+    "ExperienceStore",
+    "Note",
+    "NoteType",
+    "ProvenanceReason",
+    "ProvenanceResult",
     "Settings",
     "create_agent",
     "get_settings",
+    "load_store",
     "usage_limits",
+    "validate_provenance",
 ]
