@@ -1038,6 +1038,7 @@ dependencies = [
     { name = "pydantic-ai" },
     { name = "pydantic-settings" },
     { name = "pyyaml" },
+    { name = "rich" },
     { name = "tomli-w" },
     { name = "typer" },
 ]
@@ -1056,6 +1057,7 @@ requires-dist = [
     { name = "pydantic-ai", specifier = "==2.18.0" },
     { name = "pydantic-settings", specifier = ">=2.7" },
     { name = "pyyaml", specifier = ">=6.0" },
+    { name = "rich", specifier = ">=13.7" },
     { name = "tomli-w", specifier = ">=1.1" },
     { name = "typer", specifier = ">=0.15" },
 ]

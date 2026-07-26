@@ -11,9 +11,11 @@ import typer
 
 from assistant.core.config import Settings, config_file_path
 from assistant.core.journal.cli import app as journal_app
+from assistant.modules.job_search.cli import app as job_search_app
 
 app = typer.Typer(add_completion=False)
 app.add_typer(journal_app, name="journal")
+app.add_typer(job_search_app, name="jobs")
 
 
 @app.callback()
