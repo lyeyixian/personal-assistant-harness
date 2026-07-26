@@ -8,6 +8,7 @@ dependencies = [
     "pydantic-settings>=2.7",
     "pydantic-ai==2.18.0",
     "tomli-w>=1.1",
+    "pyyaml>=6.0",
 ]
 
 [dependency-groups]
@@ -16,6 +17,7 @@ dev = [
     "pytest-asyncio>=0.24",
     "ruff>=0.8",
     "pyright>=1.1.390",
+    "types-pyyaml>=6.0",
 ]
 
 [project.scripts]
