@@ -3,6 +3,7 @@ from pathlib import Path
 
 from assistant.modules.job_search.models import JobPosting
 from assistant.modules.job_search.notes import job_slug, list_job_notes, mint_job_note
+from tests.modules.job_search._helpers import job_note_body
 
 RAW_TEXT = "AI Engineer at Anthropic\n\nRequirements:\n- 5+ years of Python\n"
 
@@ -14,7 +15,6 @@ def _posting(**overrides: object) -> JobPosting:
         "market": "remote",
         "requirements": ["5+ years of Python"],
         "keywords": ["Python"],
-        "url": None,
     }
     fields.update(overrides)
     return JobPosting.model_validate(fields)
@@ -45,18 +45,17 @@ class TestMintJobNote:
         mint_job_note(vault, _posting(), RAW_TEXT, today=date(2026, 7, 19))
 
         content = (vault / "jobs" / "anthropic-ai-engineer.md").read_text()
-        _, _, body = content.partition("---\n")
-        _, _, body = body.partition("---\n")
-        assert body == RAW_TEXT
+        assert job_note_body(content) == RAW_TEXT
 
     def test_frontmatter_carries_the_typed_fields(self, tmp_path: Path) -> None:
         vault = tmp_path / "vault"
 
         mint_job_note(
             vault,
-            _posting(market="sg", url="https://example.com/job"),
+            _posting(market="sg"),
             RAW_TEXT,
             today=date(2026, 7, 19),
+            url="https://example.com/job",
         )
 
         content = (vault / "jobs" / "anthropic-ai-engineer.md").read_text()
@@ -76,9 +75,7 @@ class TestMintJobNote:
         mint_job_note(vault, _posting(), RAW_TEXT, today=date(2026, 7, 20))
 
         content = (vault / "jobs" / "anthropic-ai-engineer.md").read_text()
-        _, _, body = content.partition("---\n")
-        _, _, body = body.partition("---\n")
-        assert body == RAW_TEXT
+        assert job_note_body(content) == RAW_TEXT
 
 
 class TestListJobNotes:

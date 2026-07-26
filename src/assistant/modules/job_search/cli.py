@@ -54,12 +54,12 @@ def add(
     raw_text = _read_posting_text(file)
 
     try:
-        posting = parse_posting(raw_text, market=market, url=url)
+        posting = parse_posting(raw_text, market=market)
     except PostingParseError as exc:
         typer.echo(str(exc), err=True)
         raise typer.Exit(code=1) from exc
 
-    slug = mint_job_note(settings.vault_path, posting, raw_text)
+    slug = mint_job_note(settings.vault_path, posting, raw_text, url=url)
     typer.echo(slug)
 
 

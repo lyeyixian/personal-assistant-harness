@@ -44,13 +44,15 @@ def _jobs_dir(vault_path: Path) -> Path:
     return vault_path / "jobs"
 
 
-def render_job_note(posting: JobPosting, raw_text: str, *, captured: date) -> str:
+def render_job_note(
+    posting: JobPosting, raw_text: str, *, captured: date, url: str | None = None
+) -> str:
     frontmatter: dict[str, Any] = {
         "type": "job",
         "company": posting.company,
         "title": posting.title,
         "market": posting.market,
-        "url": posting.url,
+        "url": url,
         "captured": captured.isoformat(),
         "verdict": None,
         "direction": None,
@@ -61,13 +63,18 @@ def render_job_note(posting: JobPosting, raw_text: str, *, captured: date) -> st
 
 
 def mint_job_note(
-    vault_path: Path, posting: JobPosting, raw_text: str, *, today: date | None = None
+    vault_path: Path,
+    posting: JobPosting,
+    raw_text: str,
+    *,
+    today: date | None = None,
+    url: str | None = None,
 ) -> str:
     """Write `posting`'s job note, replacing any note already at the same slug; returns the slug."""
     slug = job_slug(posting)
     jobs_dir = _jobs_dir(vault_path)
     jobs_dir.mkdir(parents=True, exist_ok=True)
-    note = render_job_note(posting, raw_text, captured=today or date.today())
+    note = render_job_note(posting, raw_text, captured=today or date.today(), url=url)
     (jobs_dir / f"{slug}.md").write_text(note)
     return slug
 
