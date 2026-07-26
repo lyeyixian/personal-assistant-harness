@@ -9,6 +9,7 @@ dependencies = [
     "pydantic-ai==2.18.0",
     "tomli-w>=1.1",
     "pyyaml>=6.0",
+    "rich>=13.7",
 ]
 
 [dependency-groups]
