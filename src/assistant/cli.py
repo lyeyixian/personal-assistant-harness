@@ -10,8 +10,10 @@ import tomli_w
 import typer
 
 from assistant.core.config import Settings, config_file_path
+from assistant.core.journal.cli import app as journal_app
 
 app = typer.Typer(add_completion=False)
+app.add_typer(journal_app, name="journal")
 
 
 @app.callback()
