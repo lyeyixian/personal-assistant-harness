@@ -12,4 +12,6 @@ class Settings(BaseSettings):
 
 
 def get_settings() -> Settings:
+    # vault_path is populated from VAULT_PATH, not the constructor -
+    # pyright's pydantic-derived `__init__` can't see that.
     return Settings()  # pyright: ignore[reportCallIssue]
