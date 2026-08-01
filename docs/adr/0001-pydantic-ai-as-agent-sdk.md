@@ -1,6 +1,6 @@
 # ADR-0001: Pydantic AI as the agent SDK
 
-**Status:** Accepted (2026-07-16)
+**Status:** Accepted (2026-07-16); superseded by [ADR-0005](0005-claude-session-as-orchestrator.md) (2026-08-01)
 **Ticket:** [Decide: which agent SDK (#3)](https://github.com/lyeyixian/personal-assistant-harness/issues/3)
 **Research:** [Python agent SDK comparison](https://github.com/lyeyixian/personal-assistant-harness/blob/research/python-agent-sdks/docs/research/python-agent-sdks.md) (#2)
 

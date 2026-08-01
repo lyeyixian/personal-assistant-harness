@@ -1,6 +1,6 @@
 # Personal Assistant Harness
 
-A personal AI assistant whose first module is job search: an agent reads a store of career experience to analyze job fit and generate tailored resumes, and keeps that store fresh through journaling.
+A personal AI assistant whose first module is job search: a Claude Code session reads a store of career experience to analyze job fit and generate tailored resumes, and keeps that store fresh through journaling.
 
 ## Language
 
@@ -28,7 +28,7 @@ A free-form, timestamped capture of day-to-day work appended to a per-day inbox 
 _Avoid_: log, daily note
 
 **Fold**:
-The curation step where the agent rewrites pending journal entries into the structured notes, reviewed by the human as a git diff.
+The curation step where the session rewrites pending journal entries into the structured notes, reviewed by the human as a git diff.
 _Avoid_: sync, ingest, import
 
 **Direction**:
