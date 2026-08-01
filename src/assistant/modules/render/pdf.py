@@ -105,6 +105,7 @@ def _compile_inputs(content: ResumeContent) -> dict[str, str]:
 def _page_count(compile_inputs: dict[str, str]) -> int:
     """The rendered page count, read back from the template's own counter."""
     return int(
+        # The `typst` wheel ships no type stubs, so pyright can't see `query`'s signature.
         typst.query(  # pyright: ignore[reportUnknownMemberType]
             str(TEMPLATE_PATH),
             _PAGE_COUNT_LABEL,
@@ -128,6 +129,7 @@ def render_resume_pdf(content: ResumeContent) -> bytes:
             "never by shrinking the layout."
         )
 
+    # Same missing-stubs situation as `typst.query` above.
     pdf: bytes = typst.compile(  # pyright: ignore[reportUnknownMemberType]
         str(TEMPLATE_PATH),
         sys_inputs=compile_inputs,
