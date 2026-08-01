@@ -8,7 +8,7 @@ Issues live in this repo's GitHub Issues (`lyeyixian/personal-assistant-harness`
 
 ### Triage labels
 
-Default five-role vocabulary (`needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`). See `docs/agents/triage-labels.md`.
+Two roles in active use (`ready-for-agent`, `wontfix`) out of the five-role default vocabulary. See `docs/agents/triage-labels.md`.
 
 ### Domain docs
 

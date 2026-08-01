@@ -1,6 +1,6 @@
 # ADR-0002: Harness architecture & project structure
 
-**Status:** Accepted (2026-07-17)
+**Status:** Accepted (2026-07-17); amended by [ADR-0005](0005-claude-session-as-orchestrator.md) (2026-08-01)
 **Ticket:** [Design: harness architecture & project structure (#11)](https://github.com/lyeyixian/personal-assistant-harness/issues/11)
 **Builds on:** [ADR-0001: Pydantic AI as the agent SDK](0001-pydantic-ai-as-agent-sdk.md)
 
