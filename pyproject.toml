@@ -5,8 +5,12 @@ description = "Personal AI assistant harness — pa CLI, core facade, and module
 requires-python = ">=3.12"
 dependencies = [
     "typer>=0.15",
+    "pydantic>=2.9",
     "pydantic-settings>=2.7",
     "pyyaml>=6.0",
+    # Pinned exactly: the wheel bundles the fonts the resume template renders
+    # with, so a version bump would change the rendered bytes.
+    "typst==0.15.0",
 ]
 
 [dependency-groups]
