@@ -4,6 +4,8 @@ A personal AI assistant whose first module is job search: a Claude Code session 
 
 ## Language
 
+The vault defines its own terms in [GLOSSARY.md](https://github.com/lyeyixian/experience-vault/blob/main/GLOSSARY.md). Where the two files differ, the vault glossary is correct. It uses "vault" for the full repository and "experience" for the record under `experience/`.
+
 **Experience Store**:
 The dedicated Obsidian vault holding the canonical, curated record of career experience — the single source of truth the assistant reads.
 _Avoid_: knowledge base, experience bank (that's the pre-vault seed document)
